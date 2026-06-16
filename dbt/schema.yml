@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: vw_waterfall_slack_alerts
+    description: >
+      Consolidated Waterfall data-quality alerts for Slack (#ca-data-alerts).
+      Replaces ad-hoc monitoring for usage coverage, end bucket drift,
+      core EE count changes, volume anomalies, and natural growth shifts.
+    config:
+      schema: fin_ops
+      database: prod_incubation
+    columns:
+      - name: alert_type
+        description: High-level alert category
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - missing_usage_data
+                - end_bucket_change
+                - core_employee_count_change
+                - volume_anomaly
+                - natural_growth_change
+      - name: issue_type
+        description: Specific check identifier
+      - name: source_table
+        description: Usage source or bucket/table context
+      - name: alert_date
+        description: Date the alert applies to
+      - name: detail
+        description: JSON payload for Slack formatting
+
+# NOTE: Remove unique_combination_of_columns from the model that previously defined it.
+# See dbt/REMOVE_unique_combination_of_columns.md

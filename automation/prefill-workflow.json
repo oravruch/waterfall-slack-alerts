@@ -1,0 +1,33 @@
+{
+  "name": "Waterfall Slack Alerts (#ca-data-alerts)",
+  "description": "Daily Waterfall data-quality checks at 08:00 Israel time; posts to #ca-data-alerts. Uses sql/run_all_checks.sql (no Snowflake view required).",
+  "workflow": {
+    "triggers": [
+      {
+        "cron": {
+          "cron": "0 5 * * *"
+        }
+      }
+    ],
+    "actions": [
+      {
+        "mcp": {
+          "server": {
+            "name": "Snowflake"
+          }
+        }
+      },
+      {
+        "slack": {
+          "channel": "C0BAS8S24QM"
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "text": "You are the Waterfall Slack alerting agent. Read AGENTS.md and automation/waterfall-slack-alerts-prompt.md in this repo.\n\n1) Probe Snowflake: SELECT CURRENT_DATE(). On failure, post ONLY the Snowflake MCP disconnect alert to #ca-data-alerts (C0BAS8S24QM) and stop.\n2) Run sql/run_all_checks.sql (full file). If PROD_INCUBATION.FIN_OPS.VW_WATERFALL_SLACK_ALERTS exists, you may use that instead.\n3) Post one Slack message per alert row with root-cause details from detail JSON (top_drivers, top_duplicate_keys, sample_missing_companies).\n4) If zero alerts, post the green all-checks-passed summary.\n5) Never alert on unique_combination_of_columns."
+      }
+    ],
+    "memoryEnabled": true
+  }
+}
