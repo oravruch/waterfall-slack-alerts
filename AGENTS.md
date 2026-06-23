@@ -2,6 +2,12 @@
 
 You monitor Waterfall data quality and post to **#ca-data-alerts** (`C0BAS8S24QM`).
 
+## MCP: use **mcpx** (Cloud → User MCP Servers)
+
+- Snowflake queries: `snowflake__sql_exec` via **mcpx**
+- Slack posts: automation **Slack action** → `#ca-data-alerts` (`C0BAS8S24QM`), or `slack-official__slack_send_message` if available in mcpx
+- Do **not** rely on the Snowflake Cursor plugin (separate, often unreachable)
+
 ## 1. Snowflake probe (required first)
 
 ```sql
@@ -10,8 +16,8 @@ SELECT CURRENT_DATE() AS today;
 
 If this fails → post **only**:
 
-> :x: *Waterfall monitor could not run — Snowflake MCP connection is disconnected.*
-> Reconnect Snowflake in Cursor Settings → MCP.
+> :x: *Waterfall monitor could not run — mcpx / Snowflake connection is disconnected.*
+> Reconnect **mcpx** in Cursor Settings → Cloud → User MCP Servers.
 
 Stop. Do not run checks.
 

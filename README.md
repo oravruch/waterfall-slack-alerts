@@ -43,6 +43,8 @@ Cursor Automation: **daily at 08:00 Israel time** (cron `0 5 * * *` UTC during I
 
 If Snowflake MCP is disconnected at run time, the automation posts a disconnect alert instead of anomaly results.
 
+**MCP:** use **mcpx** (Cloud → User MCP Servers) — includes Snowflake SQL + Slack. Do not use the separate Snowflake Cursor plugin.
+
 ## Root cause in alerts
 
 Alerts include driver detail in the `detail` JSON:
