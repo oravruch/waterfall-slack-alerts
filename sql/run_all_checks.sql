@@ -69,9 +69,9 @@ usage_missing_samples AS (
         check_date,
         ARRAY_AGG(OBJECT_CONSTRUCT('company_id', company_id)) WITHIN GROUP (ORDER BY company_id) AS sample_missing_companies
     FROM (
-        SELECT check_name, source_table, check_date, company_id,
-               ROW_NUMBER() OVER (PARTITION BY check_name ORDER BY company_id) AS rn
-        FROM usage_checks
+        SELECT uc.check_name, uc.source_table, uc.check_date, uc.company_id,
+               ROW_NUMBER() OVER (PARTITION BY uc.check_name ORDER BY uc.company_id) AS rn
+        FROM usage_checks uc
         WHERE usage_value = 0
     )
     WHERE rn <= 10
