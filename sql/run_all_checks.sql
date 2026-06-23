@@ -81,7 +81,7 @@ usage_missing_samples AS (
 usage_alerts AS (
     SELECT
         'missing_usage_data' AS alert_type,
-        check_name AS issue_type,
+        uc.check_name AS issue_type,
         uc.source_table,
         uc.check_date AS alert_date,
         COUNT(DISTINCT uc.company_id) AS metric_1,
@@ -450,7 +450,7 @@ volume_dup_buckets AS (
             SELECT COUNT(*) AS cnt
             FROM PROD_DWH.WATERFALL.FACT_WATERFALL_BUCKETS
             WHERE date_id = CURRENT_DATE()
-            GROUP BY company_id, bucket_name, date_id
+            GROUP BY company_id, product_code, revenue_type, model_type, date_id
             HAVING COUNT(*) > 1
         )
     ) stats
@@ -458,16 +458,16 @@ volume_dup_buckets AS (
         SELECT ARRAY_AGG(
             OBJECT_CONSTRUCT(
                 'company_id', company_id,
-                'bucket_name', bucket_name,
+                'product_code', product_code,
                 'row_count', cnt,
-                'field', 'company_id, bucket_name, date_id'
+                'field', 'company_id, product_code, revenue_type, model_type, date_id'
             )
         ) WITHIN GROUP (ORDER BY cnt DESC) AS top_duplicate_keys
         FROM (
-            SELECT company_id, bucket_name, COUNT(*) AS cnt
+            SELECT company_id, product_code, COUNT(*) AS cnt
             FROM PROD_DWH.WATERFALL.FACT_WATERFALL_BUCKETS
             WHERE date_id = CURRENT_DATE()
-            GROUP BY company_id, bucket_name, date_id
+            GROUP BY company_id, product_code, revenue_type, model_type, date_id
             HAVING COUNT(*) > 1
             ORDER BY cnt DESC
             LIMIT 5
