@@ -273,11 +273,6 @@ daily_counts AS (
     WHERE date_id BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE()
     GROUP BY 1, 2
     UNION ALL
-    SELECT 'MRT_WTFL_UNPIVOT', date_id, COUNT(*)
-    FROM PROD_DWH.WATERFALL.MRT_WTFL_UNPIVOT
-    WHERE date_id BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE()
-    GROUP BY 1, 2
-    UNION ALL
     SELECT 'FACT_WATERFALL_BUCKETS', date_id, COUNT(*)
     FROM PROD_DWH.WATERFALL.FACT_WATERFALL_BUCKETS
     WHERE date_id BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE()
@@ -398,44 +393,6 @@ volume_dup_usage AS (
         )
     ) tops
 ),
-volume_dup_unpivot AS (
-    SELECT
-        'MRT_WTFL_UNPIVOT' AS source_table,
-        stats.duplicate_key_groups,
-        stats.extra_duplicate_rows,
-        tops.top_duplicate_keys
-    FROM (
-        SELECT
-            COUNT(*) AS duplicate_key_groups,
-            SUM(cnt - 1) AS extra_duplicate_rows
-        FROM (
-            SELECT COUNT(*) AS cnt
-            FROM PROD_DWH.WATERFALL.MRT_WTFL_UNPIVOT
-            WHERE date_id = CURRENT_DATE()
-            GROUP BY company_id, product_code, bucket_name, date_id
-            HAVING COUNT(*) > 1
-        )
-    ) stats
-    CROSS JOIN (
-        SELECT ARRAY_AGG(
-            OBJECT_CONSTRUCT(
-                'company_id', company_id,
-                'bucket_name', bucket_name,
-                'row_count', cnt,
-                'field', 'company_id, product_code, bucket_name, date_id'
-            )
-        ) WITHIN GROUP (ORDER BY cnt DESC) AS top_duplicate_keys
-        FROM (
-            SELECT company_id, bucket_name, COUNT(*) AS cnt
-            FROM PROD_DWH.WATERFALL.MRT_WTFL_UNPIVOT
-            WHERE date_id = CURRENT_DATE()
-            GROUP BY company_id, product_code, bucket_name, date_id
-            HAVING COUNT(*) > 1
-            ORDER BY cnt DESC
-            LIMIT 5
-        )
-    ) tops
-),
 volume_dup_buckets AS (
     SELECT
         'FACT_WATERFALL_BUCKETS' AS source_table,
@@ -478,7 +435,6 @@ volume_dup_all AS (
     SELECT * FROM volume_dup_daily
     UNION ALL SELECT * FROM volume_dup_snap
     UNION ALL SELECT * FROM volume_dup_usage
-    UNION ALL SELECT * FROM volume_dup_unpivot
     UNION ALL SELECT * FROM volume_dup_buckets
 ),
 
