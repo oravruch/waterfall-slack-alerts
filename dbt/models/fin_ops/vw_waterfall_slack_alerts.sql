@@ -486,6 +486,55 @@ volume_alerts AS (
       AND ABS(c.record_count - b.expected_record_count) / NULLIF(b.expected_record_count, 0) > 0.20
 ),
 
+volume_unpivot_daily_counts AS (
+    SELECT date_id AS record_date, COUNT(*) AS record_count
+    FROM PROD_DWH.WATERFALL.MRT_WTFL_UNPIVOT
+    WHERE date_id BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE()
+    GROUP BY 1
+),
+
+volume_unpivot_alerts AS (
+    SELECT
+        'volume_anomaly' AS alert_type,
+        'volume_anomaly_mrt_wtfl_unpivot' AS issue_type,
+        'MRT_WTFL_UNPIVOT' AS source_table,
+        CURRENT_DATE() AS alert_date,
+        t.current_record_count AS metric_1,
+        ROUND(b.expected_record_count, 2) AS metric_2,
+        ROUND(
+            ABS(t.current_record_count - b.expected_record_count)
+            / NULLIF(b.expected_record_count, 0) * 100,
+            2
+        ) AS metric_3,
+        t.current_record_count - b.expected_record_count AS metric_4,
+        OBJECT_CONSTRUCT(
+            'current_record_count', t.current_record_count,
+            'diff_record', t.current_record_count - b.expected_record_count,
+            'expected_record_count', ROUND(b.expected_record_count, 2),
+            'deviation_pct', ROUND(
+                ABS(t.current_record_count - b.expected_record_count)
+                / NULLIF(b.expected_record_count, 0) * 100,
+                2
+            ),
+            'date', CURRENT_DATE(),
+            'source_table', 'MRT_WTFL_UNPIVOT',
+            'co_authored_with', 'CoCo',
+            'likely_cause', 'row count deviation vs 7-day average'
+        ) AS detail
+    FROM (
+        SELECT record_count AS current_record_count
+        FROM volume_unpivot_daily_counts
+        WHERE record_date = CURRENT_DATE()
+    ) t
+    CROSS JOIN (
+        SELECT AVG(record_count) AS expected_record_count
+        FROM volume_unpivot_daily_counts
+        WHERE record_date BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE() - 1
+    ) b
+    WHERE ABS(t.current_record_count - b.expected_record_count)
+          / NULLIF(b.expected_record_count, 0) > 0.20
+),
+
 natural_growth_top_drivers AS (
     SELECT ARRAY_AGG(
         OBJECT_CONSTRUCT(
@@ -568,4 +617,5 @@ FROM usage_alerts
 UNION ALL SELECT alert_type, issue_type, source_table, alert_date, metric_1, metric_2, metric_3, metric_4, detail FROM end_bucket_alerts
 UNION ALL SELECT alert_type, issue_type, source_table, alert_date, metric_1, metric_2, metric_3, metric_4, detail FROM ee_alerts
 UNION ALL SELECT alert_type, issue_type, source_table, alert_date, metric_1, metric_2, metric_3, metric_4, detail FROM volume_alerts
+UNION ALL SELECT alert_type, issue_type, source_table, alert_date, metric_1, metric_2, metric_3, metric_4, detail FROM volume_unpivot_alerts
 UNION ALL SELECT alert_type, issue_type, source_table, alert_date, metric_1, metric_2, metric_3, metric_4, detail FROM natural_growth_alerts;
