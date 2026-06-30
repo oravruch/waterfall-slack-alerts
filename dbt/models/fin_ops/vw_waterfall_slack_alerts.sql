@@ -488,7 +488,7 @@ volume_alerts AS (
 
 volume_unpivot_daily_counts AS (
     SELECT date_id AS record_date, COUNT(*) AS record_count
-    FROM PROD_DWH.WATERFALL.MRT_WTFL_UNPIVOT
+    FROM PROD_DWH.WATERFALL.MRT_WTFL_DAILY
     WHERE date_id BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE()
     GROUP BY 1
 ),
@@ -497,13 +497,13 @@ volume_unpivot_alerts AS (
     SELECT
         'volume_anomaly' AS alert_type,
         'volume_anomaly_mrt_wtfl_unpivot' AS issue_type,
-        'MRT_WTFL_UNPIVOT' AS source_table,
+        'MRT_WTFL_DAILY' AS source_table,
         CURRENT_DATE() AS alert_date,
         t.current_record_count AS metric_1,
         ROUND(b.expected_record_count, 2) AS metric_2,
         ROUND(
             ABS(t.current_record_count - b.expected_record_count)
-            / NULLIF(b.expected_record_count, 0) * 100,
+            / NULLIF(b.expected_record_count, 0),
             2
         ) AS metric_3,
         t.current_record_count - b.expected_record_count AS metric_4,
@@ -513,11 +513,12 @@ volume_unpivot_alerts AS (
             'expected_record_count', ROUND(b.expected_record_count, 2),
             'deviation_pct', ROUND(
                 ABS(t.current_record_count - b.expected_record_count)
-                / NULLIF(b.expected_record_count, 0) * 100,
+                / NULLIF(b.expected_record_count, 0),
                 2
             ),
+            'status', 'ALERT',
             'date', CURRENT_DATE(),
-            'source_table', 'MRT_WTFL_UNPIVOT',
+            'source_table', 'MRT_WTFL_DAILY',
             'co_authored_with', 'CoCo',
             'likely_cause', 'row count deviation vs 7-day average'
         ) AS detail

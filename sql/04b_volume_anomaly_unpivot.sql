@@ -1,9 +1,10 @@
--- Volume anomaly detection for MRT_WTFL_UNPIVOT comparing today's record count to 7-day average
+-- Volume anomaly: volume_anomaly_mrt_wtfl_unpivot (counts MRT_WTFL_DAILY vs 7-day average)
 -- Co-authored with CoCo
+-- Returns rows only when status = ALERT (>20% deviation)
 
 WITH daily_counts AS (
     SELECT date_id AS record_date, COUNT(*) AS record_count
-    FROM PROD_DWH.WATERFALL.MRT_WTFL_UNPIVOT
+    FROM PROD_DWH.WATERFALL.MRT_WTFL_DAILY
     WHERE date_id BETWEEN CURRENT_DATE() - 7 AND CURRENT_DATE()
     GROUP BY 1
 ),
@@ -20,14 +21,14 @@ today AS (
 SELECT
     'volume_anomaly' AS alert_type,
     'volume_anomaly_mrt_wtfl_unpivot' AS issue_type,
-    'MRT_WTFL_UNPIVOT' AS source_table,
+    'MRT_WTFL_DAILY' AS source_table,
     CURRENT_DATE() AS alert_date,
     t.current_record_count,
     t.current_record_count - b.expected_record_count AS diff_record,
     ROUND(b.expected_record_count, 2) AS expected_record_count,
     ROUND(
         ABS(t.current_record_count - b.expected_record_count)
-        / NULLIF(b.expected_record_count, 0) * 100,
+        / NULLIF(b.expected_record_count, 0),
         2
     ) AS deviation_pct,
     CASE
@@ -42,11 +43,12 @@ SELECT
         'expected_record_count', ROUND(b.expected_record_count, 2),
         'deviation_pct', ROUND(
             ABS(t.current_record_count - b.expected_record_count)
-            / NULLIF(b.expected_record_count, 0) * 100,
+            / NULLIF(b.expected_record_count, 0),
             2
         ),
+        'status', 'ALERT',
         'date', CURRENT_DATE(),
-        'source_table', 'MRT_WTFL_UNPIVOT',
+        'source_table', 'MRT_WTFL_DAILY',
         'co_authored_with', 'CoCo'
     ) AS detail
 FROM today t
